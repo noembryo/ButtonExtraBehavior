@@ -17,6 +17,12 @@ class adds the following features to the normal `Button` behavior:
 * **Double click:** An `on_double_click` event is emitted if a second click
   (tap) occurs inside a customizable `double_time`. This is disabled by
   default.
+
+* **Scroll Up:** An `on_scroll_up` event is emitted when the mouse wheel
+  scrolls up.
+
+* **Scroll Down:** An `on_scroll_up` event is emitted when the mouse wheel
+  scrolls down.
 ___
 
 ##### Usage
@@ -25,7 +31,7 @@ You can combine this class with a `Button` for a button that has everything,
 or with the `ButtonBehavior` and other widgets, like an `Image` or even
 Layouts, to provide alternative buttons that have Kivy button+extra behavior.
 
-The `ButtonExtraBehavior` must be before `ButtonBehavior` or `Button` in a
+The `ButtonExtraBehavior` must be *before* `ButtonBehavior` or `Button` in a
 [kivy mixin](https://kivy.org/doc/stable/api-kivy.uix.behaviors.html).
 
 Because of the small delay that is added to the _single_ click when active
@@ -79,6 +85,8 @@ Builder.load_string("""
             on_right_click: root.change_state(self, "Right click!")
             on_middle_click: root.change_state(self, "Middle click!")
             on_double_click: root.change_state(self, "Double click!")
+            on_scroll_up: root.change_state(self, "Scroll up!")
+            on_scroll_down: root.change_state(self, "Scroll down!")
         MyExtraImageButton:
             source: "data/logo/kivy-icon-256.png"
             double_click_enabled: True
@@ -86,6 +94,8 @@ Builder.load_string("""
             on_right_click: root.change_state(self, "Right click!")
             on_middle_click: root.change_state(self, "Middle click!")
             on_double_click: root.change_state(self, "Double click!")
+            on_scroll_up: root.change_state(self, "Scroll up!")
+            on_scroll_down: root.change_state(self, "Scroll down!")
 """)
 
 

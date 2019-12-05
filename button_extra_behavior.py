@@ -22,13 +22,19 @@ Features
   (tap) occurs inside a customizable `double_time`. This is disabled by
   default.
 
+* **Scroll Up:** An `on_scroll_up` event is emitted when the mouse wheel
+  scrolls up.
+
+* **Scroll Down:** An `on_scroll_up` event is emitted when the mouse wheel
+  scrolls down.
+
 You can combine this class with a :class:`~kivy.uix.button.Button`
 for a button that has everything, or with
 :class:`~kivy.uix.behaviors.button.ButtonBehavior` and other widgets, like an
 :class:`~kivy.uix.image.Image` or even Layouts, to provide alternative buttons
 that have Kivy button+extra behavior.
 
-The :class:`ButtonExtraBehavior` must be before
+The :class:`ButtonExtraBehavior` must be _before_
 :class:`~kivy.uix.button.Button` or
 :class:`~kivy.uix.behaviors.button.ButtonBehavior` in a
 `kivy mixin <https://kivy.org/doc/stable/api-kivy.uix.behaviors.html>`_
@@ -48,7 +54,7 @@ from kivy.clock import Clock
 
 
 __author__ = "noEmbryo"
-__version__ = "0.5.0.0"
+__version__ = "0.6.0.0"
 
 __all__ = ("ButtonExtraBehavior",)
 
@@ -56,7 +62,7 @@ __all__ = ("ButtonExtraBehavior",)
 # noinspection PyAttributeOutsideInit,PyUnresolvedReferences
 class ButtonExtraBehavior(object):
     """ This `mixin <https://en.wikipedia.org/wiki/Mixin>`_ class adds
-    right/middle/double/long click/press events to any widget.
+    right/middle/double/long click/press/scroll events to any widget.
 
     :Events:
         `on_long_press`
@@ -69,6 +75,10 @@ class ButtonExtraBehavior(object):
         `on_double_click`
             Fired if a second click (tap) occurs inside a customizable
             `double_time`. This is disabled by default.
+        `on_scroll_up`
+            Fired when the mouse wheel scrolls up.
+        `on_scroll_down`
+            Fired when the mouse wheel scrolls down.
     """
 
     long_time = NumericProperty(.25)
@@ -98,6 +108,8 @@ class ButtonExtraBehavior(object):
         self.register_event_type("on_middle_click")
         self.register_event_type("on_right_click")
         self.register_event_type("on_long_press")
+        self.register_event_type("on_scroll_up")
+        self.register_event_type("on_scroll_down")
 
         self.after_long_press = False
         self.long_clock = Clock.schedule_once(self.long_pressed,
@@ -125,6 +137,12 @@ class ButtonExtraBehavior(object):
                     self.state = "down"
                     self.dispatch("on_middle_click")
                     return True  # block release if middle click is emitted
+                elif touch.button == "scrollup":
+                    self.dispatch("on_scroll_up")
+                    return True  # block release if scroll up is emitted
+                elif touch.button == "scrolldown":
+                    self.dispatch("on_scroll_down")
+                    return True  # block release if scroll down is emitted
 
             if self.double_clock.is_triggered:  # if double click
                 self.second_click = True
@@ -145,6 +163,8 @@ class ButtonExtraBehavior(object):
                 return True
         if self.collide_point(*touch.pos):
             self.state = "normal"
+            if "button" in touch.profile and touch.button in ["scrollup", "scrolldown"]:
+                return True  # just block scroll release
             if self.long_clock.is_triggered:
                 self.long_clock.cancel()
                 if self.double_click_enabled:
@@ -186,6 +206,12 @@ class ButtonExtraBehavior(object):
     def on_double_click(self):
         """ Needed for the "on_double_click" event """
 
+    def on_scroll_up(self):
+        """ Needed for the "on_scroll_up" event """
+
+    def on_scroll_down(self):
+        """ Needed for the "on_scroll_down" event """
+
 
 if __name__ == "__main__":
 
@@ -214,6 +240,8 @@ if __name__ == "__main__":
             on_right_click: root.change_state(self, "Right click!")
             on_middle_click: root.change_state(self, "Middle click!")
             on_double_click: root.change_state(self, "Double click!")
+            on_scroll_up: root.change_state(self, "Scroll up!")
+            on_scroll_down: root.change_state(self, "Scroll down!")
         MyExtraImageButton:
             source: "data/logo/kivy-icon-256.png"
             double_click_enabled: True
@@ -221,6 +249,8 @@ if __name__ == "__main__":
             on_right_click: root.change_state(self, "Right click!")
             on_middle_click: root.change_state(self, "Middle click!")
             on_double_click: root.change_state(self, "Double click!")
+            on_scroll_up: root.change_state(self, "Scroll up!")
+            on_scroll_down: root.change_state(self, "Scroll down!")
 """)
 
 
