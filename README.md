@@ -22,14 +22,29 @@ ___
 ##### Usage
 
 You can combine this class with a `Button` for a button that has everything,
-or with the `ButtonBehavior` and other widgets, like an `Image` or even Layouts,
-to provide alternative buttons that have Kivy button+extra behavior.
+or with the `ButtonBehavior` and other widgets, like an `Image` or even
+Layouts, to provide alternative buttons that have Kivy button+extra behavior.
 
 The `ButtonExtraBehavior` must be before `ButtonBehavior` or `Button` in a
 [kivy mixin](https://kivy.org/doc/stable/api-kivy.uix.behaviors.html).
 
-Because of the small delay that is added to the _single_ click when active (equal
-to `double_time`), the "Double click" is disabled by default.
+Because of the small delay that is added to the _single_ click when active
+(equal to `double_time`), the "Double click" is disabled by default.
+
+##### Attributes
+
+* **long_time** - Minimum time that a click/press must be held, to be
+  registered as a `long press`.  
+  `long_time` is a `float` and defaults to 0.25.
+
+* **double_time** - Maximum time for a second click/tap to be registered as
+  `double click`.  
+  `double_time` is a `float` and defaults to 0.2.
+
+* **double_click_enabled** - Enables the double click detection. This
+  introduces a delay to the `on_touch_down` emission in the case of a single
+  click.  
+  `double_click_enabled` is a `bool` and defaults to `False`.
 ___
 
 ##### Example
