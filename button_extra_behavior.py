@@ -42,6 +42,12 @@ The :class:`ButtonExtraBehavior` must be _before_
 Because of the small delay that is added to the *single* click when active (equal
 to `double_time`), the "Double click" is disabled by default.
 
+`ScrollView` handles `touch_down`/`touch_up` in a special way.
+That's why we need to set a `scroll_timeout` (about the same as the
+:attr:`~ScrollView.scroll_timeout` ) if we want to use
+:class:`ButtonExtraBehavior` inside one of those.
+`scroll_timeout` is needed only if we also want to use "Double Click".
+
 
 Example
 _______
@@ -54,7 +60,7 @@ from kivy.clock import Clock
 
 
 __author__ = "noEmbryo"
-__version__ = "0.6.0.0"
+__version__ = "0.7.0.0"
 
 __all__ = ("ButtonExtraBehavior",)
 
@@ -102,6 +108,16 @@ class ButtonExtraBehavior(object):
     and defaults to `False`.
     """
 
+    scroll_timeout = NumericProperty()
+    """ Timeout that is needed if we use :class:`ButtonExtraBehavior` inside a
+    :class:`ScrollView` widget. Must be the same as the
+    :attr:`~ScrollView.scroll_timeout` value.
+    Needed only if :attr:`~ButtonExtraBehavior.double_click_enabled` is `True`.
+
+    :attr:`scroll_timeout` is a :class:`~kivy.properties.NumericProperty` and
+    defaults to 0.
+    """
+
     def __init__(self, **kwargs):
         super(ButtonExtraBehavior, self).__init__(**kwargs)
         self.register_event_type("on_double_click")
@@ -111,30 +127,37 @@ class ButtonExtraBehavior(object):
         self.register_event_type("on_scroll_up")
         self.register_event_type("on_scroll_down")
 
-        self.after_long_press = False
-        self.long_clock = Clock.schedule_once(self.long_pressed,
-                                              self.long_time)
-        self.long_clock.cancel()
+        self._long_clock = Clock.schedule_once(self.long_pressed,
+                                               self.long_time)
+        self._long_clock.cancel()
+        self._after_long_press = False
 
-        self.second_click = False
-        self.double_clock = Clock.schedule_once(self.send_press,
-                                                self.double_time)
-        self.double_clock.cancel()
+        self._double_clock = Clock.schedule_once(self.send_press,
+                                                 self.double_time)
+        self._double_clock.cancel()
+        self._second_click = False
+
+        self._current_touch = None
+
+    def on_scroll_timeout(self, __, timeout):
+        self.double_time = self.double_time + timeout * .001
+        self._double_clock = Clock.schedule_once(self.send_press,
+                                                 self.double_time)
+        self._double_clock.cancel()
 
     def on_touch_down(self, touch):
         for child in self.children[:]:
             if child.dispatch("on_touch_down", touch):
                 return True
         if self.collide_point(*touch.pos):
-            self.after_long_press = False
-            self.second_click = False
+            self._current_touch = touch
+            self._after_long_press = False
+            self._second_click = False
             if "button" in touch.profile:
                 if touch.button == "right":
                     self.dispatch("on_right_click")
-                    self.state = "down"
                     return True  # block release if right click is emitted
                 elif touch.button == "middle":
-                    self.state = "down"
                     self.dispatch("on_middle_click")
                     return True  # block release if middle click is emitted
                 elif touch.button == "scrollup":
@@ -144,55 +167,70 @@ class ButtonExtraBehavior(object):
                     self.dispatch("on_scroll_down")
                     return True  # block release if scroll down is emitted
 
-            if self.double_clock.is_triggered:  # if double click
-                self.second_click = True
+            self._long_clock()
+            if self._double_clock.is_triggered:  # if double click
+                self._second_click = True
                 self.state = "down"
-                self.double_clock.cancel()
+                self._double_clock.cancel()
                 self.dispatch("on_double_click")
                 return True  # block release if double click is emitted
-            elif self.double_click_enabled:  # don't check for double click
-                self.double_clock()
+            elif self.double_click_enabled:  # start checking for double click
+                self._double_clock()
+                self.state = "down"
+                return True
             else:
-                super(ButtonExtraBehavior, self).on_touch_down(touch)
-            self.long_clock()
-            return True
+                return super(ButtonExtraBehavior, self).on_touch_down(touch)
 
     def on_touch_up(self, touch, *__):
         for child in self.children[:]:
             if child.dispatch("on_touch_up", touch):
                 return True
         if self.collide_point(*touch.pos):
-            self.state = "normal"
-            if "button" in touch.profile and touch.button in ["scrollup", "scrolldown"]:
-                return True  # just block scroll release
-            if self.long_clock.is_triggered:
-                self.long_clock.cancel()
+            if touch.is_mouse_scrolling:
+                return True  # just block scrollWheel release
+            if self._long_clock.is_triggered:
+                self._long_clock.cancel()
                 if self.double_click_enabled:
+                    if self._second_click:
+                        self.state = "normal"
                     return True  # block release while waiting for double click
+                else:
+                    self.state = "normal"
             else:
-                if self.second_click:
+                if self._second_click:
+                    self.state = "normal"
                     return True  # block release if double click is emitted
-                if self.after_long_press:
+                if self._after_long_press:
+                    self.state = "normal"
                     return True  # block release if long press is emitted
-            super(ButtonExtraBehavior, self).on_touch_up(touch)
-            return True
+            return super(ButtonExtraBehavior, self).on_touch_up(touch)
 
     def send_press(self, *__):
         """ Propagates the `touch_down` event
         """
-        try:
-            if not self.long_clock.is_triggered:
-                super(ButtonExtraBehavior, self).trigger_action()
+        if self._long_clock.is_triggered:
+            self.state = "down"
+        else:
+            if not self.scroll_timeout:
+                super(ButtonExtraBehavior,
+                      self).on_touch_down(self._current_touch)
+                self._current_touch.ud[self] = True
+                self._current_touch.grab_current = self
+                super(ButtonExtraBehavior,
+                      self).on_touch_up(self._current_touch)
             else:
-                self.state = "down"
-        except AttributeError:  # no ButtonBehavior in MixIn
-            pass
+                try:
+                    super(ButtonExtraBehavior, self).trigger_action()
+                except AttributeError:  # no ButtonBehavior in MixIn
+                    pass
+            self.state = "normal"
 
     def long_pressed(self, *__):
         """ Sends the "on_long_press" event
         """
-        self.after_long_press = True
+        self._after_long_press = True
         self.dispatch("on_long_press")
+        self._double_clock.cancel()
 
     def on_long_press(self):
         """ Needed for the "on_long_press" event """

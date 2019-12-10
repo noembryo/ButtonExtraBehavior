@@ -37,6 +37,12 @@ The `ButtonExtraBehavior` must be *before* `ButtonBehavior` or `Button` in a
 Because of the small delay that is added to the _single_ click when active
 (equal to `double_time`), the "Double click" is disabled by default.
 
+`ScrollView` handles `touch_down`/`touch_up` in a special way.  
+That's why we need to set a `scroll_timeout` (about the same as the
+`ScrollView.scroll_timeout` ) if we want to use `ButtonExtraBehavior` inside
+one of those.  
+`scroll_timeout` is needed only if we also want to use "Double Click".
+
 ##### Attributes
 
 * **long_time** - Minimum time that a click/press must be held, to be
@@ -51,6 +57,11 @@ Because of the small delay that is added to the _single_ click when active
   introduces a delay to the `on_touch_down` emission in the case of a single
   click.  
   `double_click_enabled` is a `bool` and defaults to `False`.
+
+* **scroll_timeout** - Timeout that is needed if we use `ButtonExtraBehavior`
+  inside a `ScrollView` widget.  
+  Must be the same (or about the same) as the `ScrollView.scroll_timeout` value.  
+  Needed only if `double_click_enabled` is `True`.
 ___
 
 ##### Example
