@@ -110,7 +110,7 @@ class ButtonExtraBehavior(object):
 
     scroll_timeout = NumericProperty()
     """ Timeout that is needed if we use :class:`ButtonExtraBehavior` inside a
-    :class:`ScrollView` widget. Must be the same as the
+    :class:`ScrollView` widget. Must be close to the
     :attr:`~ScrollView.scroll_timeout` value.
     Needed only if :attr:`~ButtonExtraBehavior.double_click_enabled` is `True`.
 
@@ -120,12 +120,10 @@ class ButtonExtraBehavior(object):
 
     def __init__(self, **kwargs):
         super(ButtonExtraBehavior, self).__init__(**kwargs)
-        self.register_event_type("on_double_click")
-        self.register_event_type("on_middle_click")
-        self.register_event_type("on_right_click")
-        self.register_event_type("on_long_press")
-        self.register_event_type("on_scroll_up")
-        self.register_event_type("on_scroll_down")
+
+        for i in ("on_double_click", "on_middle_click", "on_right_click",
+                  "on_long_press", "on_scroll_up", "on_scroll_down"):
+            self.register_event_type(i)
 
         self._long_clock = Clock.schedule_once(self.long_pressed,
                                                self.long_time)
@@ -140,6 +138,11 @@ class ButtonExtraBehavior(object):
         self._current_touch = None
 
     def on_scroll_timeout(self, __, timeout):
+        self.long_time = self.long_time + timeout * .001
+        self._long_clock = Clock.schedule_once(self.long_pressed,
+                                               self.long_time)
+        self._long_clock.cancel()
+
         self.double_time = self.double_time + timeout * .001
         self._double_clock = Clock.schedule_once(self.send_press,
                                                  self.double_time)
